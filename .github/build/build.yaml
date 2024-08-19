@@ -1,0 +1,101 @@
+name: Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    name: Build ${{ matrix.os }} ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x86_64
+            target: x86_64-unknown-linux-gnu
+          - os: ubuntu-latest
+            arch: aarch64
+            target: aarch64-unknown-linux-gnu
+          - os: windows-latest
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            arch: aarch64
+            target: aarch64-pc-windows-msvc
+          - os: macos-latest
+            arch: aarch64
+            target: aarch64-apple-darwin
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Rust
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: stable
+        target: ${{ matrix.target }}
+        override: true
+
+    - name: Build
+      uses: actions-rs/cargo@v1
+      with:
+        use-cross: true
+        command: build
+        args: --release --target ${{ matrix.target }}
+
+    - name: Prepare artifact
+      shell: bash
+      run: |
+        mkdir artifact
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          cp target/${{ matrix.target }}/release/clip-utility.exe artifact/
+        else
+          cp target/${{ matrix.target }}/release/clip-utility artifact/
+        fi
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: clip-utility-${{ matrix.os }}-${{ matrix.arch }}
+        path: artifact/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/download-artifact@v2
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}-${{ github.sha }}
+          release_name: Release ${{ github.ref }}-${{ github.sha }}
+          draft: false
+          prerelease: false
+      - name: Upload Release Assets
+        uses: actions/github-script@v3
+        with:
+          github-token: ${{secrets.GITHUB_TOKEN}}
+          script: |
+            const fs = require('fs').promises;
+            const path = require('path');
+            const artifacts = await fs.readdir('.');
+            for (const artifact of artifacts) {
+              const files = await fs.readdir(artifact);
+              for (const file of files) {
+                const filePath = path.join(artifact, file);
+                await github.repos.uploadReleaseAsset({
+                  owner: context.repo.owner,
+                  repo: context.repo.name,
+                  release_id: ${{ steps.create_release.outputs.id }},
+                  name: `${artifact}-${file}`,
+                  data: await fs.readFile(filePath)
+                });
+              }
+            }

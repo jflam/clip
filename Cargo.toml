@@ -1,0 +1,16 @@
+[package]
+name = "clip"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+clipboard = "0.5"
+glob = "0.3"
+tiktoken-rs = "0.5.2"
+
+[profile.release]
+opt-level = 'z'
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
