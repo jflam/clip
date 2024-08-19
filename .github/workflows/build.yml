@@ -65,35 +65,38 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     steps:
-      - uses: actions/download-artifact@v2
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}-${{ github.sha }}
-          release_name: Release ${{ github.ref }}-${{ github.sha }}
-          draft: false
-          prerelease: false
-      - name: Upload Release Assets
-        uses: actions/github-script@v3
+      - uses: actions/download-artifact@v4
+      - name: Create Release and Upload Assets
+        uses: actions/github-script@v6
         with:
           github-token: ${{secrets.GITHUB_TOKEN}}
           script: |
             const fs = require('fs').promises;
             const path = require('path');
+            
+            // Create release
+            const { data: release } = await github.rest.repos.createRelease({
+              owner: context.repo.owner,
+              repo: context.repo.name,
+              tag_name: `${context.ref}-${context.sha}`,
+              name: `Release ${context.ref}-${context.sha}`,
+              draft: false,
+              prerelease: false
+            });
+            
+            // Upload assets
             const artifacts = await fs.readdir('.');
             for (const artifact of artifacts) {
               const files = await fs.readdir(artifact);
               for (const file of files) {
                 const filePath = path.join(artifact, file);
-                await github.repos.uploadReleaseAsset({
+                const fileContent = await fs.readFile(filePath);
+                await github.rest.repos.uploadReleaseAsset({
                   owner: context.repo.owner,
                   repo: context.repo.name,
-                  release_id: ${{ steps.create_release.outputs.id }},
+                  release_id: release.id,
                   name: `${artifact}-${file}`,
-                  data: await fs.readFile(filePath)
+                  data: fileContent
                 });
               }
             }
