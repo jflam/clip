@@ -1,5 +1,4 @@
 name: Build
-
 on:
   push:
     branches: [ main ]
@@ -51,15 +50,15 @@ jobs:
       run: |
         mkdir artifact
         if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cp target/${{ matrix.target }}/release/clip-utility.exe artifact/
+          cp target/${{ matrix.target }}/release/clip.exe artifact/
         else
-          cp target/${{ matrix.target }}/release/clip-utility artifact/
+          cp target/${{ matrix.target }}/release/clip artifact/
         fi
 
     - name: Upload artifact
       uses: actions/upload-artifact@v2
       with:
-        name: clip-utility-${{ matrix.os }}-${{ matrix.arch }}
+        name: clip-${{ matrix.os }}-${{ matrix.arch }}
         path: artifact/*
 
   release:
