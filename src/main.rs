@@ -46,7 +46,7 @@ fn main() -> io::Result<()> {
     let ts_files = collect_ts_files(&patterns)?;
 
     if ts_files.is_empty() {
-        println!("No TypeScript files found matching the provided patterns.");
+        println!("No files found matching the provided patterns.");
         return Ok(());
     }
 
@@ -56,7 +56,7 @@ fn main() -> io::Result<()> {
     let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
     ctx.set_contents(content).unwrap();
 
-    println!("Collected {} TypeScript files.", ts_files.len());
+    println!("Collected {} files.", ts_files.len());
     println!("Total tokens: {}", token_count);
     println!("File contents have been copied to the clipboard.");
 
