@@ -13,17 +13,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - target: x86_64-pc-windows-msvc
+          - os: windows-latest
+            arch: x86_64
+            target: x86_64-pc-windows-msvc
             archive: zip
-          - target: aarch64-pc-windows-msvc
+          - os: windows-latest
+            arch: aarch64
+            target: aarch64-pc-windows-msvc
             archive: zip
-          - target: x86_64-apple-darwin
-            archive: zip
-          - target: aarch64-apple-darwin
+          - os: macos-latest
+            arch: aarch64
+            target: aarch64-apple-darwin
             archive: zip
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - name: Compile and release
         uses: rust-build/rust-build.action@v1.4.5
