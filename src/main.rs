@@ -13,9 +13,9 @@ fn print_help() {
     println!("\nOptions:");
     println!("  -h, --help    Show this help message");
     println!("\nExamples:");
-    println!("  clip src/**/*.ts        # Glob all .ts files in src directory and subdirectories");
-    println!("  clip src/*.ts           # Glob all .ts files in src directory");
-    println!("  clip package.json src test  # Glob specific files and directories");
+    println!("  clip src/**/*.ts                            # Glob all .ts files in src directory and subdirectories");
+    println!("  clip src/*.ts                               # Glob all .ts files in src directory");
+    println!("  clip package.json src/**/*.ts test/**/*.ts  # Glob specific files and directories");
     println!("\nDescription:");
     println!("  This program copies the contents of globbed files to the system clipboard,");
     println!("  where each file is separated by its full path. This is intended to help");
