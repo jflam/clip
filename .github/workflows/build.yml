@@ -1,97 +1,43 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    tags:
+      - 'v*'
 
 jobs:
-  build:
-    name: Build ${{ matrix.os }} ${{ matrix.arch }}
-    runs-on: ${{ matrix.os }}
+  release:
+    name: Release ${{ matrix.target }}
+    runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
-          - os: windows-latest
-            arch: x86_64
-            target: x86_64-pc-windows-msvc
-          - os: windows-latest
-            arch: aarch64
-            target: aarch64-pc-windows-msvc
-          - os: macos-latest
-            arch: aarch64
-            target: aarch64-apple-darwin
+          - target: x86_64-pc-windows-msvc
+            archive: zip
+          - target: aarch64-pc-windows-msvc
+            archive: zip
+          - target: x86_64-apple-darwin
+            archive: zip
+          - target: aarch64-apple-darwin
+            archive: zip
 
     steps:
-    - uses: actions/checkout@v3
-
-    - name: Set up Rust
-      uses: actions-rs/toolchain@v1
-      with:
-        toolchain: stable
-        target: ${{ matrix.target }}
-        override: true
-
-    - name: Build
-      uses: actions-rs/cargo@v1
-      with:
-        command: build
-        args: --release --target ${{ matrix.target }}
-
-    - name: Prepare artifact
-      shell: bash
-      run: |
-        mkdir artifact
-        if [ "${{ matrix.os }}" = "windows-latest" ]; then
-          cp target/${{ matrix.target }}/release/clip.exe artifact/
-        else
-          cp target/${{ matrix.target }}/release/clip artifact/
-        fi
-
-    - name: Upload artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: clip-${{ matrix.os }}-${{ matrix.arch }}
-        path: artifact/*
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - uses: actions/download-artifact@v4
-      - name: Create Release and Upload Assets
-        uses: actions/github-script@v6
+      - uses: actions/checkout@v3
+      
+      - name: Compile and release
+        uses: rust-build/rust-build.action@v1.4.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          github-token: ${{secrets.GITHUB_TOKEN}}
-          script: |
-            const fs = require('fs').promises;
-            const path = require('path');
-            
-            // Create release
-            const { data: release } = await github.rest.repos.createRelease({
-              owner: context.repo.owner,
-              repo: context.repo.name,
-              tag_name: `${context.ref}-${context.sha}`,
-              name: `Release ${context.ref}-${context.sha}`,
-              draft: false,
-              prerelease: false
-            });
-            
-            // Upload assets
-            const artifacts = await fs.readdir('.');
-            for (const artifact of artifacts) {
-              const files = await fs.readdir(artifact);
-              for (const file of files) {
-                const filePath = path.join(artifact, file);
-                const fileContent = await fs.readFile(filePath);
-                await github.rest.repos.uploadReleaseAsset({
-                  owner: context.repo.owner,
-                  repo: context.repo.name,
-                  release_id: release.id,
-                  name: `${artifact}-${file}`,
-                  data: fileContent
-                });
-              }
-            }
+          RUSTTARGET: ${{ matrix.target }}
+          ARCHIVE_TYPES: ${{ matrix.archive }}
+          ARCHIVE_NAME: clip-${{ matrix.target }}
+          
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: clip-${{ matrix.target }}
+          path: |
+            clip-${{ matrix.target }}.*
+            clip-${{ matrix.target }}
