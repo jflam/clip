@@ -3,11 +3,10 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-use clipboard::{ClipboardContext, ClipboardProvider};
+use arboard::Clipboard;
 use glob::glob;
 use tiktoken_rs::cl100k_base;
 
-use arboard::Clipboard as ArboardClipboard;
 use image::{ImageBuffer, RgbaImage, ImageFormat};
 use std::convert::TryInto;
 use std::io::Cursor;
@@ -78,8 +77,13 @@ fn clip_files_to_clipboard(patterns: &[String]) -> io::Result<()> {
     let content = process_files(&files)?;
     let token_count = count_tokens(&content);
 
-    let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
-    ctx.set_contents(content).unwrap();
+    let mut clipboard = Clipboard::new().map_err(|e| {
+        io::Error::new(io::ErrorKind::Other, format!("Failed to initialize clipboard: {}", e))
+    })?;
+
+    clipboard.set_text(content).map_err(|e| {
+        io::Error::new(io::ErrorKind::Other, format!("Failed to set clipboard text: {}", e))
+    })?;
 
     println!("Collected {} files.", files.len());
     println!("Total tokens: {}", token_count);
@@ -90,7 +94,7 @@ fn clip_files_to_clipboard(patterns: &[String]) -> io::Result<()> {
 /// Perform "clippa" functionality: read from clipboard and write to stdout
 fn clippa_to_stdout() -> Result<(), Box<dyn std::error::Error>> {
     // Initialize the clipboard
-    let mut clipboard = ArboardClipboard::new()?;
+    let mut clipboard = Clipboard::new()?;
 
     // Attempt to retrieve text from the clipboard
     if let Ok(text) = clipboard.get_text() {
@@ -157,7 +161,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
     // Otherwise, perform "clip" functionality (copy files to clipboard)
     else {
-        // Apply the suggested fix: wrap the result in Ok and use ?
-        Ok(clip_files_to_clipboard(&args)?)
+        clip_files_to_clipboard(&args)?;
+        Ok(())
     }
 }

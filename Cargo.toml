@@ -1,10 +1,9 @@
 [package]
 name = "clip"
-version = "0.2.0"  # Incremented version to indicate changes
+version = "0.2.1" 
 edition = "2021"
 
 [dependencies]
-clipboard = "0.5"
 glob = "0.3"
 tiktoken-rs = "0.5.2"
 arboard = "3.4.1"
