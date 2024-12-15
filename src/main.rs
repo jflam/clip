@@ -18,7 +18,8 @@ fn print_help() {
     println!("\nUsage:");
     println!("  clip [OPTIONS] [PATTERNS...]");
     println!("\nOptions:");
-    println!("  -h, --help    Show this help message");
+    println!("  -h, --help     Show this help message");
+    println!("  --version      Show program version");
     println!("\nUsage Patterns:");
     println!("  1. Copy Clipboard Content to a File:");
     println!("     clip > filename.extension");
@@ -203,7 +204,7 @@ fn clippa_to_stdout() -> Result<(), Box<dyn std::error::Error>> {
             let buffer: RgbaImage = ImageBuffer::from_raw(width, height, rgba_bytes)
                 .ok_or("Failed to create image buffer from clipboard data")?;
 
-            // Encode the image as PNG using a Cursor to satisfy Write + Seek
+            // Encode the image as PNG using a Cursor
             let mut cursor = Cursor::new(Vec::new());
             buffer
                 .write_to(&mut cursor, ImageFormat::Png)
@@ -235,6 +236,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     // If help flag is present, display help
     else if args.contains(&"-h".to_string()) || args.contains(&"--help".to_string()) {
         print_help();
+        Ok(())
+    }
+    // If version flag is present, display version
+    else if args.contains(&"--version".to_string()) {
+        println!("{}", env!("CARGO_PKG_VERSION"));
         Ok(())
     }
     // Otherwise, perform "clip" functionality (copy files to clipboard)
